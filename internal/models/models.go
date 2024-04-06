@@ -9,17 +9,18 @@ type Feature struct {
 }
 
 type User struct {
-	ID      uint64  `json:"id"`
-	Feature Feature `json:"Feature"`
-	Tag     Tag     `json:"Tag"`
+	ID        uint64  `json:"id"`
+	Admin     bool    `json:"Role"`
+	FeatureID uint64  `json:"-"`
+	Feature   Feature `json:"Feature"`
+	TagID     uint64  `json:"-"`
+	Tag       Tag     `json:"Tag"`
 }
 
 type Banner struct {
-	ID      uint64  `json:"id"`
-	Feature Feature `json:"Feature"`
-	Tag     Tag     `json:"Tag"`
-}
-
-type HttpParams struct {
-	ID uint64 `params:"id" json:"id"`
+	ID        uint64  `json:"id"`
+	FeatureID uint64  `json:"-"`
+	Feature   Feature `json:"Feature"`
+	TagID     uint64  `json:"-"`
+	Tag       Tag     `json:"Tag"`
 }

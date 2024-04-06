@@ -13,5 +13,4 @@ func InitializeRoutes(a *fiber.App, handler *handlers.Handler) {
 	route.Post("/banner", handler.PostBanner)
 	route.Patch("/banner/:id", handler.PatchBanner)
 	route.Delete("/banner/:id", handler.DeleteBanner)
-	route.Get("/", handler.HelloWorld)
 }

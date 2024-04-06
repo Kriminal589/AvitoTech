@@ -16,7 +16,17 @@ func NewHandler(DB databases.DBInt) *Handler {
 }
 
 func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
-	return nil
+	params := models.UserBanner{}
+
+	err := c.QueryParser(&params)
+	bannerId, err := h.DB.GetUserBanner(params.TagID, params.FeatureID)
+
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"banner_id": bannerId,
+	})
 }
 
 func (h *Handler) GetBanner(c *fiber.Ctx) error {
@@ -32,7 +42,7 @@ func (h *Handler) PatchBanner(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
-	params := models.HttpParams{}
+	params := models.DeleteBanner{}
 
 	err := c.ParamsParser(&params)
 	if err != nil {
@@ -42,8 +52,4 @@ func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
 	fmt.Println(params.ID)
 
 	return err
-}
-
-func (h *Handler) HelloWorld(c *fiber.Ctx) error {
-	return c.SendString("Hello world!")
 }
