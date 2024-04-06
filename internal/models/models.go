@@ -10,7 +10,7 @@ type Feature struct {
 
 type User struct {
 	ID        uint64  `json:"id"`
-	Admin     bool    `json:"Role"`
+	Admin     bool    `json:"admin"`
 	FeatureID uint64  `json:"-"`
 	Feature   Feature `json:"Feature"`
 	TagID     uint64  `json:"-"`
