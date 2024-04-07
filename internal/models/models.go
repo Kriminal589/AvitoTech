@@ -1,5 +1,7 @@
 package models
 
+import "github.com/jackc/pgtype"
+
 type Tag struct {
 	ID uint64 `json:"id"`
 }
@@ -18,9 +20,7 @@ type User struct {
 }
 
 type Banner struct {
-	ID        uint64  `json:"id"`
-	FeatureID uint64  `json:"-"`
-	Feature   Feature `json:"Feature"`
-	TagID     uint64  `json:"-"`
-	Tag       Tag     `json:"Tag"`
+	ID        uint64       `json:"id"`
+	FeatureID uint64       `json:"-"`
+	Message   pgtype.JSONB `json:"Message"`
 }

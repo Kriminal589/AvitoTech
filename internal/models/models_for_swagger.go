@@ -5,6 +5,6 @@ type DeleteBanner struct {
 }
 
 type UserBanner struct {
-	TagID     uint64 `json:"tag_id"`
-	FeatureID uint64 `json:"feature_id"`
+	TagID     string `params:"tag_id" json:"tag_id"`
+	FeatureID string `params:"feature_id" json:"feature_id"`
 }
