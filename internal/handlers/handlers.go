@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"AvitoTech/internal/databases"
+	"AvitoTech/internal/handlers/contract"
 	"AvitoTech/internal/models"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
@@ -9,10 +9,10 @@ import (
 )
 
 type Handler struct {
-	DB databases.DBInt
+	DB contract.DBInt
 }
 
-func NewHandler(DB databases.DBInt) *Handler {
+func NewHandler(DB contract.DBInt) *Handler {
 	return &Handler{DB: DB}
 }
 
@@ -29,7 +29,7 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetBanner(c *fiber.Ctx) error {
-	var message pgtype.JSONB
+	var message []pgtype.JSONB
 	var err error
 
 	tagId := c.QueryInt("tag_id", -1)

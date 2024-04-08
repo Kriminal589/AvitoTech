@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
+	pgxV5 "github.com/jackc/pgx/v5"
 )
 
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
@@ -33,25 +34,33 @@ func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64) (pgtype.JSONB, erro
 	return message, err
 }
 
-func (p PgxDB) GetBanner(featureId uint64) (pgtype.JSONB, error) {
+func (p PgxDB) GetBanner(featureId uint64) ([]pgtype.JSONB, error) {
 	sqlTest, args, err := psql.Select("message").From("banner").Where(squirrel.Eq{
 		"feature_id": featureId}).ToSql()
 
 	if err != nil {
 		log.Errorf("Unable to build SELECT query: %v", err)
-		return pgtype.JSONB{}, err
+		return nil, err
 	}
 
-	var messages pgtype.JSONB
+	var dates []pgtype.JSONB
+	var date pgtype.JSONB
 
-	err = p.QueryRow(context.Background(), sqlTest, args[0]).Scan(&messages)
+	//err = p.QueryRow(context.Background(), sqlTest, args[0]).Scan(&messages)
+
+	rows, err := p.Query(context.Background(), sqlTest, args[0])
+
+	_, err = pgxV5.ForEachRow(rows, []any{&date}, func() error {
+		dates = append(dates, date)
+		return nil
+	})
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return pgtype.JSONB{}, fmt.Errorf("db: reserve: no such banner with feature_id %d", featureId)
+		return nil, fmt.Errorf("db: reserve: no such banner with feature_id %d", featureId)
 	}
 	if err != nil {
-		return pgtype.JSONB{}, err
+		return nil, err
 	}
 
-	return messages, err
+	return dates, err
 }

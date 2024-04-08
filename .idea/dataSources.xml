@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="postgres@localhost" uuid="a9966688-c7e4-4e82-b88a-feea1ee221df">
+    <data-source source="LOCAL" name="Avit_Tech@postgresql" uuid="69279254-aba9-4ffb-8927-2b0c92d61d9c">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:5434/postgres</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:5432/avito_tech</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
