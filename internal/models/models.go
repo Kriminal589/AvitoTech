@@ -20,7 +20,11 @@ type User struct {
 }
 
 type Banner struct {
-	ID        uint64       `json:"id"`
-	FeatureID uint64       `json:"-"`
-	Message   pgtype.JSONB `json:"Message"`
+	ID        uint64           `json:"id"`
+	BannerID  uint64           `json:"banner_id"`
+	FeatureID uint64           `json:"feature_id"`
+	Content   pgtype.JSONB     `json:"content"`
+	IsActive  bool             `json:"is_active"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }

@@ -14,9 +14,9 @@ import (
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
 func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64) (pgtype.JSONB, error) {
-	var message pgtype.JSONB
+	var data pgtype.JSONB
 
-	sqlTest, args, err := psql.Select("message").From("banner b").LeftJoin("banner_tmp t ON b.id = t.banner_id").Where(squirrel.Eq{
+	sqlRequest, args, err := psql.Select("content").From("banner b").LeftJoin("banner_tag_link t ON b.id = t.banner_id").Where(squirrel.Eq{
 		"t.tag_id": tagId, "b.feature_id": featureId}).ToSql()
 
 	if err != nil {
@@ -24,18 +24,18 @@ func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64) (pgtype.JSONB, erro
 		return pgtype.JSONB{}, err
 	}
 
-	err = p.QueryRow(context.Background(), sqlTest, args[0], args[1]).Scan(&message)
+	err = p.QueryRow(context.Background(), sqlRequest, args[0], args[1]).Scan(&data)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return pgtype.JSONB{}, fmt.Errorf("db: reserve: no such banner with tag_id %d and feature_id %d", tagId, featureId)
 	} else if err != nil {
 		return pgtype.JSONB{}, err
 	}
-	return message, err
+	return data, err
 }
 
 func (p PgxDB) GetBanner(featureId uint64) ([]pgtype.JSONB, error) {
-	sqlTest, args, err := psql.Select("message").From("banner").Where(squirrel.Eq{
+	sqlRequest, args, err := psql.Select("*").From("banner").Where(squirrel.Eq{
 		"feature_id": featureId}).ToSql()
 
 	if err != nil {
@@ -43,15 +43,14 @@ func (p PgxDB) GetBanner(featureId uint64) ([]pgtype.JSONB, error) {
 		return nil, err
 	}
 
-	var dates []pgtype.JSONB
-	var date pgtype.JSONB
+	var result []pgtype.JSONB
+	var data []pgtype.JSONB
 
-	//err = p.QueryRow(context.Background(), sqlTest, args[0]).Scan(&messages)
+	rows, err := p.Query(context.Background(), sqlRequest, args[0])
 
-	rows, err := p.Query(context.Background(), sqlTest, args[0])
-
-	_, err = pgxV5.ForEachRow(rows, []any{&date}, func() error {
-		dates = append(dates, date)
+	_, err = pgxV5.ForEachRow(rows, []any{&data}, func() error {
+		fmt.Println(data)
+		result = append(result, data...)
 		return nil
 	})
 
@@ -62,5 +61,5 @@ func (p PgxDB) GetBanner(featureId uint64) ([]pgtype.JSONB, error) {
 		return nil, err
 	}
 
-	return dates, err
+	return result, err
 }

@@ -20,12 +20,12 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 	tagId := c.QueryInt("tag_id")
 	featureId := c.QueryInt("feature_id")
 
-	message, err := h.DB.GetUserBanner(uint64(tagId), uint64(featureId))
+	data, err := h.DB.GetUserBanner(uint64(tagId), uint64(featureId))
 
 	if err != nil {
 		return err
 	}
-	return c.JSON(message)
+	return c.JSON(data)
 }
 
 func (h *Handler) GetBanner(c *fiber.Ctx) error {

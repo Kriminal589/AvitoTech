@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS tag (
     id BIGSERIAL PRIMARY KEY
 ) TABLESPACE pg_default;
 
-CREATE TABLE IF NOT EXISTS banner_tmp (
+CREATE TABLE IF NOT EXISTS banner_tag_link (
     id BIGSERIAL PRIMARY KEY,
     banner_id BIGSERIAL NOT NULL,
     tag_id BIGSERIAL NOT NULL
@@ -30,7 +30,10 @@ CREATE TABLE IF NOT EXISTS banner (
     id BIGSERIAL PRIMARY KEY,
     banner_id BIGSERIAL,
     feature_id BIGSERIAL REFERENCES feature(id),
-    message jsonb,
+    content jsonb,
+    is_active bool,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     UNIQUE (banner_id, feature_id)
 ) TABLESPACE pg_default;
 -- +goose StatementEnd
@@ -41,4 +44,5 @@ DROP TABLE IF EXISTS tag;
 DROP TABLE IF EXISTS feature;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS banner;
+DROP TABLE IF EXISTS banner_tag_link;
 -- +goose StatementEnd
