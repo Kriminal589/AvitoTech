@@ -1,6 +1,9 @@
 package models
 
-import "github.com/jackc/pgtype"
+import (
+	"github.com/jackc/pgtype"
+	"time"
+)
 
 type Tag struct {
 	ID uint64 `json:"id"`
@@ -20,11 +23,11 @@ type User struct {
 }
 
 type Banner struct {
-	ID        uint64           `json:"id"`
-	BannerID  uint64           `json:"banner_id"`
-	FeatureID uint64           `json:"feature_id"`
-	Content   pgtype.JSONB     `json:"content"`
-	IsActive  bool             `json:"is_active"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	BannerID  uint64       `json:"banner_id"`
+	TagIDS    []uint64     `json:"tag_ids"`
+	FeatureID uint64       `json:"feature_id"`
+	Content   pgtype.JSONB `json:"content"`
+	IsActive  bool         `json:"is_active"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }

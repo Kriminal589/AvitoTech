@@ -15,8 +15,6 @@ import (
 	"os"
 )
 
-//var embedMigrations embed.FS
-
 func main() {
 	app := fiber.New()
 
@@ -38,16 +36,6 @@ func main() {
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	pgxDB := databases.NewPgxDB(pool, zapadapter.NewLogger(zap.NewNop()))
-
-	//var db *sql.DB
-	//goose.SetBaseFS(embedMigrations)
-	//if err := goose.SetDialect("postgres"); err != nil {
-	//	panic(err)
-	//}
-	//
-	//if err := goose.Up(db, os.Getenv("PATH_MIGRATIONS")); err != nil {
-	//	panic(err)
-	//}
 
 	handler := handlers.NewHandler(pgxDB)
 	routes.InitializeRoutes(app, handler)
