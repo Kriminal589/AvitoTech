@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS tag (
 
 CREATE TABLE IF NOT EXISTS banner_tag_link (
     id BIGSERIAL PRIMARY KEY,
-    banner_id BIGSERIAL NOT NULL,
-    tag_id BIGSERIAL NOT NULL
+    banner_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL
 ) TABLESPACE pg_default;
 
 CREATE TABLE IF NOT EXISTS feature (
@@ -21,20 +21,24 @@ CREATE TABLE IF NOT EXISTS feature (
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
-    admin BOOLEAN DEFAULT FALSE NOT NULL,
-    feature_id BIGSERIAL,
-    tag_id BIGSERIAL
+    tag_id BIGINT
 ) TABLESPACE pg_default;
 
 CREATE TABLE IF NOT EXISTS banner (
     id BIGSERIAL PRIMARY KEY,
-    banner_id BIGSERIAL,
-    feature_id BIGSERIAL REFERENCES feature(id),
+    banner_id BIGINT,
+    feature_id BIGINT REFERENCES feature(id),
     content jsonb,
     is_active bool,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     UNIQUE (banner_id, feature_id)
+) TABLESPACE pg_default;
+
+CREATE TABLE IF NOT EXISTS roles (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT,
+    admin BOOLEAN
 ) TABLESPACE pg_default;
 -- +goose StatementEnd
 

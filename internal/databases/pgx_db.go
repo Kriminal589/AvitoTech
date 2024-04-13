@@ -1,6 +1,7 @@
 package databases
 
 import (
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -16,3 +17,5 @@ func NewPgxDB(pool *pgxpool.Pool, logger pgx.Logger) *PgxDB {
 		Logger: logger,
 	}
 }
+
+var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)

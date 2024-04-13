@@ -17,3 +17,12 @@ type RequestBanner struct {
 	Content   pgtype.JSONB `params:"content" json:"content"`
 	IsActive  bool         `params:"is_active" json:"is_active"`
 }
+
+type TokenMetadata struct {
+	Id uint64 `params:"id" json:"id"`
+}
+
+type BannerTagLink struct {
+	BannerID uint64 `params:"banner_id" json:"banner_id"`
+	TagID    uint64 `params:"tag_id" json:"tag_id"`
+}

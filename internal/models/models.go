@@ -23,11 +23,11 @@ type User struct {
 }
 
 type Banner struct {
-	BannerID  uint64       `json:"banner_id"`
-	TagIDS    []uint64     `json:"tag_ids"`
-	FeatureID uint64       `json:"feature_id"`
-	Content   pgtype.JSONB `json:"content"`
-	IsActive  bool         `json:"is_active"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	BannerID  uint64       `params:"banner_id" json:"banner_id"`
+	TagIDS    []uint64     `params:"tag_ids" json:"tag_ids"`
+	FeatureID uint64       `params:"feature_id" json:"feature_id"`
+	Content   pgtype.JSONB `params:"content" json:"content"`
+	IsActive  bool         `params:"is_active" json:"is_active"`
+	CreatedAt time.Time    `params:"created_at" json:"created_at"`
+	UpdatedAt time.Time    `params:"updated_at" json:"updated_at"`
 }

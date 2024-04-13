@@ -1,18 +1,22 @@
 package main
 
 import (
-	"AvitoTech/internal/databases"
-	"AvitoTech/internal/handlers"
-	"AvitoTech/internal/routes"
 	"context"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
-	"log"
-	"os"
+
+	"AvitoTech/internal/cache"
+	"AvitoTech/internal/databases"
+	"AvitoTech/internal/handlers"
+	"AvitoTech/internal/routes"
+	checker "AvitoTech/internal/user_checker"
 )
 
 func main() {
@@ -37,7 +41,10 @@ func main() {
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	pgxDB := databases.NewPgxDB(pool, zapadapter.NewLogger(zap.NewNop()))
 
-	handler := handlers.NewHandler(pgxDB)
+	bannerCache := cache.New(pgxDB)
+	userChecker := checker.New(pgxDB, os.Getenv("CONTEXT_JWT_KEY"))
+
+	handler := handlers.NewHandler(pgxDB, bannerCache, userChecker)
 	routes.InitializeRoutes(app, handler)
 
 	if err := app.Listen(os.Getenv("SERVER_URL")); err != nil {
