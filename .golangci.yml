@@ -119,3 +119,7 @@ linters:
 
 issues:
   max-same-issues: 50
+  exclude-files:
+    - '.*_test.go'
+  exclude-dirs:
+    - 'integration_tests'

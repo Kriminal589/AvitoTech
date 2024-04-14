@@ -2,20 +2,14 @@ package handlers
 
 import (
 	"errors"
-	"os"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
 
 	"AvitoTech/internal/models"
 )
-
-const timeExp = time.Hour * 24
 
 type Handler struct {
 	userChecker UserChecker
@@ -59,48 +53,6 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 	return c.Type("json").Send(data)
-}
-
-func (h *Handler) GetBanners(c *fiber.Ctx) error {
-	var data []models.Banner
-
-	tagID := c.QueryInt("tag_id", -1)
-	featureID := c.QueryInt("feature_id", -1)
-	limit := c.QueryInt("limit", -1)
-	offset := c.QueryInt("offset", 0)
-
-	admin, err := h.userChecker.IsAdmin(c)
-
-	if err != nil {
-		return err
-	}
-	if !admin {
-		return c.SendStatus(fiber.StatusForbidden)
-	}
-
-	if tagID == -1 && featureID != -1 {
-		data, err = h.DB.GetBannersByFeatureID(uint64(featureID), limit, offset)
-	}
-	if tagID != -1 && featureID == -1 {
-		data, err = h.DB.GetBannersByTagID(uint64(tagID), limit, offset)
-	}
-	if tagID != -1 && featureID != -1 {
-		data, err = h.DB.GetBanners(uint64(featureID), uint64(tagID), limit, offset)
-	}
-	if tagID == -1 && featureID == -1 {
-		return c.JSON(fiber.Map{
-			"error": "Missing tag or feature",
-		})
-	}
-
-	if err != nil {
-		log.Error(err)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-	return c.JSON(data)
 }
 
 func (h *Handler) PostBanner(c *fiber.Ctx) error {
@@ -203,50 +155,4 @@ func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-func (h *Handler) Login(c *fiber.Ctx) error {
-	if err := godotenv.Load(); err != nil {
-		log.Error("No .env file found")
-	}
-
-	type user struct {
-		ID uint64 `json:"id"`
-	}
-
-	var body user
-	err := c.BodyParser(&body)
-
-	if err != nil {
-		err = c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status": "cannot parse JSON body",
-		})
-		if err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	claims := jwt.MapClaims{
-		"id":  body.ID,
-		"exp": time.Now().Add(timeExp).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	s, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return err
-	}
-
-	err = c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"token": s,
-	})
-	if err != nil {
-		return err
-	}
-
-	return err
 }

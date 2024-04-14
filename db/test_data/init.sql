@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS roles (
     admin BOOLEAN
 ) TABLESPACE pg_default;
 
-INSERT INTO feature VALUES (1);
+INSERT INTO feature VALUES (3), (2);
+INSERT INTO tag VALUES (1);
+INSERT INTO banner (feature_id,content,is_active,created_at,updated_at) VALUES (2, '{
+  "title": "Active Banner",
+  "text": "some_text",
+  "url": "some_url"
+}',true, '2024-04-09 19:27:46.9911275 +0000', '2024-04-09 19:27:46.9911275 +0000');
+INSERT INTO banner (feature_id,content,is_active,created_at,updated_at) VALUES (3, '{
+  "title": "Non active banner",
+  "text": "some_text",
+  "url": "some_url"
+}',false, '2024-04-09 19:27:46.9911275 +0000', '2024-04-09 19:27:46.9911275 +0000');
+INSERT INTO banner_tag_link (banner_id, tag_id) VALUES (1, 1), (2, 1);
 INSERT INTO users VALUES (1, 1), (2, 2);
 INSERT INTO roles VALUES (1, 1, true), (2, 2, false);

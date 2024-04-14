@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  database_test:
+    image: postgres:alpine
+    env_file: integration_tests/get_user_banner/.env
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/test_data/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_test:/var/lib/postgresql/data
+
+  server_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: banner_server_test
+    env_file: integration_tests/get_user_banner/.env
+    volumes:
+      - ./logs:/go/src/banner/logs
+    depends_on:
+      - database_test
+    ports:
+      - "8080:8080"
+    links:
+      - database_test
+
+volumes:
+  db_test:

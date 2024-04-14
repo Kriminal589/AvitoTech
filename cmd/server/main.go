@@ -15,7 +15,8 @@ import (
 	"AvitoTech/internal/cache"
 	"AvitoTech/internal/databases"
 	"AvitoTech/internal/handlers"
-	"AvitoTech/internal/routes"
+	"AvitoTech/internal/handlers/getbanner"
+	"AvitoTech/internal/middleware"
 	checker "AvitoTech/internal/user-checker"
 )
 
@@ -50,7 +51,16 @@ func main() {
 	userChecker := checker.New(pgxDB, os.Getenv("CONTEXT_JWT_KEY"))
 
 	handler := handlers.NewHandler(pgxDB, bannerCache, userChecker)
-	routes.InitializeRoutes(app, handler)
+	getBannerHandler := getbanner.NewHandler(pgxDB, userChecker)
+
+	route := app.Group("/api")
+	jwtMW := middleware.JWTProtected()
+
+	route.Get("/user_banner", jwtMW, handler.GetUserBanner)
+	route.Get("/banner", jwtMW, getBannerHandler.GetBanners)
+	route.Post("/banner", jwtMW, handler.PostBanner)
+	route.Patch("/banner/:id", jwtMW, handler.PatchBanner)
+	route.Delete("/banner/:id", jwtMW, handler.DeleteBanner)
 
 	if err := app.Listen(os.Getenv("SERVER_URL")); err != nil {
 		log.Printf("Server is not running! Reason: %v", err)

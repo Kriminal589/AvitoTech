@@ -3,6 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/69279254-aba9-4ffb-8927-2b0c92d61d9c/console_5.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/db/migrations/init.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/db/test_data/init.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/internal/databases/pgx_db_banner.go" dialect="PostgreSQL" />
   </component>
 </project>
