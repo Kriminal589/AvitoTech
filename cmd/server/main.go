@@ -16,7 +16,7 @@ import (
 	"AvitoTech/internal/databases"
 	"AvitoTech/internal/handlers"
 	"AvitoTech/internal/routes"
-	checker "AvitoTech/internal/user_checker"
+	checker "AvitoTech/internal/user-checker"
 )
 
 func main() {
@@ -39,6 +39,11 @@ func main() {
 	}
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	pgxDB := databases.NewPgxDB(pool, zapadapter.NewLogger(zap.NewNop()))
 
 	bannerCache := cache.New(pgxDB)

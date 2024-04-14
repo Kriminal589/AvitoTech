@@ -2,35 +2,45 @@ package handlers
 
 import (
 	"errors"
-	"github.com/jackc/pgx/v5"
 	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 
 	"AvitoTech/internal/models"
 )
 
+const timeExp = time.Hour * 24
+
 type Handler struct {
 	userChecker UserChecker
-	Db          DBInt
+	DB          DBInt
 	cacheGetter BannerGetter
 }
 
-func NewHandler(DB DBInt, cache BannerGetter, checker UserChecker) *Handler {
+type RequestBanner struct {
+	IsActive  bool         `params:"is_active" json:"is_active"`
+	FeatureID uint64       `params:"feature_id" json:"feature_id"`
+	TagIDs    []uint64     `params:"tag_ids" json:"tag_ids"`
+	Content   pgtype.JSONB `params:"content" json:"content"`
+}
+
+func NewHandler(db DBInt, cache BannerGetter, checker UserChecker) *Handler {
 	return &Handler{
-		Db:          DB,
+		DB:          db,
 		cacheGetter: cache,
 		userChecker: checker,
 	}
 }
 
 func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
-	tagId := c.QueryInt("tag_id")
-	featureId := c.QueryInt("feature_id")
+	tagID := c.QueryInt("tag_id")
+	featureID := c.QueryInt("feature_id")
 	lastRevision := c.QueryBool("use_last_revision", false)
 
 	admin, err := h.userChecker.IsAdmin(c)
@@ -39,7 +49,7 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 		return err
 	}
 
-	data, err := h.cacheGetter.GetUserBanner(uint64(tagId), uint64(featureId), lastRevision, admin)
+	data, err := h.cacheGetter.GetUserBanner(uint64(tagID), uint64(featureID), lastRevision, admin)
 
 	if err != nil {
 		log.Error(err)
@@ -54,8 +64,8 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 func (h *Handler) GetBanners(c *fiber.Ctx) error {
 	var data []models.Banner
 
-	tagId := c.QueryInt("tag_id", -1)
-	featureId := c.QueryInt("feature_id", -1)
+	tagID := c.QueryInt("tag_id", -1)
+	featureID := c.QueryInt("feature_id", -1)
 	limit := c.QueryInt("limit", -1)
 	offset := c.QueryInt("offset", 0)
 
@@ -68,16 +78,16 @@ func (h *Handler) GetBanners(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
-	if tagId == -1 && featureId != -1 {
-		data, err = h.Db.GetBannersByFeatureId(uint64(featureId), limit, offset)
+	if tagID == -1 && featureID != -1 {
+		data, err = h.DB.GetBannersByFeatureID(uint64(featureID), limit, offset)
 	}
-	if tagId != -1 && featureId == -1 {
-		data, err = h.Db.GetBannersByTagId(uint64(tagId), limit, offset)
+	if tagID != -1 && featureID == -1 {
+		data, err = h.DB.GetBannersByTagID(uint64(tagID), limit, offset)
 	}
-	if tagId != -1 && featureId != -1 {
-		data, err = h.Db.GetBanners(uint64(featureId), uint64(tagId), limit, offset)
+	if tagID != -1 && featureID != -1 {
+		data, err = h.DB.GetBanners(uint64(featureID), uint64(tagID), limit, offset)
 	}
-	if tagId == -1 && featureId == -1 {
+	if tagID == -1 && featureID == -1 {
 		return c.JSON(fiber.Map{
 			"error": "Missing tag or feature",
 		})
@@ -103,14 +113,19 @@ func (h *Handler) PostBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
-	banner := models.RequestBanner{}
+	banner := RequestBanner{}
 
-	if err := c.BodyParser(&banner); err != nil {
+	if err = c.BodyParser(&banner); err != nil {
 		log.Errorf("Unable to parse request body: %v", err)
 		return err
 	}
 
-	result, err := h.Db.PostBanner(banner)
+	result, err := h.DB.PostBanner(models.Banner{
+		IsActive:  banner.IsActive,
+		TagIDs:    banner.TagIDs,
+		FeatureID: banner.FeatureID,
+		Content:   banner.Content,
+	})
 
 	if err != nil {
 		log.Error(err)
@@ -130,9 +145,9 @@ func (h *Handler) PatchBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
-	banner := models.RequestBanner{}
+	banner := RequestBanner{}
 
-	if err := c.BodyParser(&banner); err != nil {
+	if err = c.BodyParser(&banner); err != nil {
 		log.Errorf("Unable to parse request body: %v", err)
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
@@ -144,7 +159,12 @@ func (h *Handler) PatchBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	err = h.Db.PatchBanner(banner, id)
+	err = h.DB.PatchBanner(models.Banner{
+		IsActive:  banner.IsActive,
+		TagIDs:    banner.TagIDs,
+		FeatureID: banner.FeatureID,
+		Content:   banner.Content,
+	}, id)
 
 	if err != nil {
 		log.Error(err)
@@ -173,7 +193,7 @@ func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	err = h.Db.DeleteBanner(uint64(id))
+	err = h.DB.DeleteBanner(uint64(id))
 
 	if err != nil {
 		log.Error(err)
@@ -186,13 +206,12 @@ func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
 }
 
 func (h *Handler) Login(c *fiber.Ctx) error {
-
 	if err := godotenv.Load(); err != nil {
 		log.Error("No .env file found")
 	}
 
 	type user struct {
-		Id uint64 `json:"id"`
+		ID uint64 `json:"id"`
 	}
 
 	var body user
@@ -210,8 +229,8 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	}
 
 	claims := jwt.MapClaims{
-		"id":  body.Id,
-		"exp": time.Now().Add(time.Hour * 3).Unix(),
+		"id":  body.ID,
+		"exp": time.Now().Add(timeExp).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

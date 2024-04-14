@@ -15,10 +15,11 @@ import (
 	"AvitoTech/internal/models"
 )
 
-func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64, isAdmin bool) ([]byte, error) {
+func (p PgxDB) GetUserBanner(tagID uint64, featureID uint64, isAdmin bool) ([]byte, error) {
 	var data pgtype.JSONB
 
-	sqlQuery, _, err := psql.Select("content").From("banner b").LeftJoin("banner_tag_link t ON b.banner_id = t.banner_id").
+	sqlQuery, _, err := p.psql.Select("content").From("banner b").
+		LeftJoin("banner_tag_link t ON b.banner_id = t.banner_id").
 		Where("($1 = true and t.tag_id = $2 and b.feature_id = $3) or " +
 			"($1 = false and t.tag_id = $2 and b.feature_id = $3 and b.is_active = true)").ToSql()
 
@@ -27,10 +28,10 @@ func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64, isAdmin bool) ([]by
 		return nil, err
 	}
 
-	err = p.QueryRow(context.Background(), sqlQuery, isAdmin, tagId, featureId).Scan(&data)
+	err = p.QueryRow(context.Background(), sqlQuery, isAdmin, tagID, featureID).Scan(&data)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("db: reserve: no such banner with tag_id %d and feature_id %d", tagId, featureId)
+		return nil, fmt.Errorf("db: reserve: no such banner with tag_id %d and feature_id %d", tagID, featureID)
 	} else if err != nil {
 		return nil, err
 	}
@@ -40,14 +41,16 @@ func (p PgxDB) GetUserBanner(tagId uint64, featureId uint64, isAdmin bool) ([]by
 	return result, err
 }
 
-func (p PgxDB) GetBannersByFeatureId(id uint64, limit int, offset int) ([]models.Banner, error) {
-	subquery := psql.Select("b.banner_id, content, is_active, created_at, updated_at, btl.tag_id").
+func (p PgxDB) GetBannersByFeatureID(id uint64, limit int, offset int) ([]models.Banner, error) {
+	subquery := p.psql.Select("b.banner_id, content, is_active, created_at, updated_at, btl.tag_id").
 		From("banner b").LeftJoin("banner_tag_link btl ON b.banner_id = btl.banner_id").Where(squirrel.Eq{
 		"b.feature_id": id,
 	})
 
-	sqlQuery, args, err := psql.Select("tab.banner_id, content, is_active, created_at, updated_at, array_agg(tag_id) tag_ids").
-		FromSelect(subquery, "tab").GroupBy("content, is_active, created_at, updated_at, tab.banner_id").ToSql()
+	sqlQuery, args, err := p.psql.Select("tab.banner_id, content, is_active, created_at, updated_at, "+
+		"array_agg(tag_id) tag_ids").
+		FromSelect(subquery, "tab").GroupBy("content, is_active, created_at, updated_at, " +
+		"tab.banner_id").ToSql()
 
 	if err != nil {
 		log.Errorf("Unable to build SELECT query: %v", err)
@@ -57,25 +60,25 @@ func (p PgxDB) GetBannersByFeatureId(id uint64, limit int, offset int) ([]models
 	rows, err := p.Query(context.Background(), sqlQuery, args...)
 
 	var (
-		bannerId             uint64
+		bannerID             uint64
 		result               []models.Banner
 		content              pgtype.JSONB
 		isActive             bool
 		createdAt, updatedAt time.Time
-		tagIds               []uint64
+		tagIDs               []uint64
 	)
 
 	countLine := 0
 	lenArray := 0
-	_, _ = pgxV5.ForEachRow(rows, []any{&bannerId, &content, &isActive, &createdAt, &updatedAt, &tagIds}, func() error {
+	_, _ = pgxV5.ForEachRow(rows, []any{&bannerID, &content, &isActive, &createdAt, &updatedAt, &tagIDs}, func() error {
 		if countLine >= offset {
 			if limit != -1 {
 				if lenArray < limit {
 					lenArray++
 
 					result = append(result, models.Banner{
-						BannerID:  bannerId,
-						TagIDS:    tagIds,
+						BannerID:  bannerID,
+						TagIDs:    tagIDs,
 						FeatureID: id,
 						Content:   content,
 						IsActive:  isActive,
@@ -87,8 +90,8 @@ func (p PgxDB) GetBannersByFeatureId(id uint64, limit int, offset int) ([]models
 				lenArray++
 
 				result = append(result, models.Banner{
-					BannerID:  bannerId,
-					TagIDS:    tagIds,
+					BannerID:  bannerID,
+					TagIDs:    tagIDs,
 					FeatureID: id,
 					Content:   content,
 					IsActive:  isActive,
@@ -106,104 +109,151 @@ func (p PgxDB) GetBannersByFeatureId(id uint64, limit int, offset int) ([]models
 	return result, err
 }
 
-func (p PgxDB) GetBannersByTagId(id uint64, limit int, offset int) ([]models.Banner, error) {
-	var bannerId uint64
+func (p PgxDB) GetBannersByTagID(id uint64, limit int, offset int) ([]models.Banner, error) {
+	subquery := p.psql.Select("b.banner_id, feature_id, content, is_active, created_at, updated_at, btl.tag_id").
+		From("banner b").LeftJoin("banner_tag_link btl ON b.banner_id = btl.banner_id").
+		Where("b.banner_id in (select banner_id from banner_tag_link where tag_id = $1)")
 
-	sqlQuery, args, err := psql.Select("banner_id").From("banner_tag_link").Where("tag_id = ?", id).ToSql()
+	sqlQuery, _, err := p.psql.Select("tab.banner_id, feature_id, content, is_active, created_at, "+
+		"updated_at, array_agg(tag_id) tag_ids").FromSelect(subquery, "tab").
+		GroupBy("feature_id, content, is_active, created_at, updated_at, tab.banner_id").ToSql()
+
 	if err != nil {
 		log.Errorf("Unable to build SELECT query: %v", err)
 		return nil, err
 	}
 
-	rows, err := p.Query(context.Background(), sqlQuery, args...)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("db: reserve: no such banner with tag %d", id)
-	}
-
-	subquery := psql.Select("feature_id, content, is_active, created_at, updated_at, btl.tag_id").
-		From("banner b").LeftJoin("banner_tag_link btl ON b.banner_id = btl.banner_id").Where(squirrel.Eq{
-		"b.banner_id": bannerId,
-	})
-
-	sqlQuery, args, err = psql.Select("feature_id, content, is_active, created_at, updated_at, array_agg(tag_id) tag_ids").
-		FromSelect(subquery, "tab").GroupBy("feature_id, content, is_active, created_at, updated_at").ToSql()
+	rows, err := p.Query(context.Background(), sqlQuery, id)
 
 	if err != nil {
-		log.Errorf("Unable to build SELECT query: %v", err)
 		return nil, err
 	}
 
 	var (
-		featureId            uint64
-		createdAt, updatedAt time.Time
-		content              pgtype.JSONB
 		isActive             bool
-		tagIds               []uint64
+		bannerID, featureID  uint64
+		tagIDs               []uint64
+		content              pgtype.JSONB
+		createdAt, updatedAt time.Time
 		result               []models.Banner
 	)
 
-	_, _ = pgxV5.ForEachRow(rows, []any{&bannerId}, func() error {
+	countLine := 0
+	lenArray := 0
+	_, err = pgxV5.ForEachRow(rows, []any{&bannerID, &featureID, &content,
+		&isActive, &createdAt, &updatedAt, &tagIDs}, func() error {
+		if countLine >= offset {
+			if limit != -1 {
+				if lenArray < limit {
+					lenArray++
 
-		err = p.QueryRow(context.Background(), sqlQuery, bannerId).Scan(&featureId, &content, &isActive, &createdAt, &updatedAt, &tagIds)
+					result = append(result, models.Banner{
+						IsActive:  isActive,
+						BannerID:  bannerID,
+						TagIDs:    tagIDs,
+						FeatureID: featureID,
+						Content:   content,
+						CreatedAt: createdAt,
+						UpdatedAt: updatedAt,
+					})
+				}
+			} else {
+				lenArray++
 
-		if err != nil && errors.Is(err, pgx.ErrNoRows) {
-			log.Errorf("Unable to build SELECT query: %v", err)
-			return err
+				result = append(result, models.Banner{
+					IsActive:  isActive,
+					BannerID:  bannerID,
+					TagIDs:    tagIDs,
+					FeatureID: featureID,
+					Content:   content,
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				})
+			}
 		}
 
-		result = append(result, models.Banner{
-			BannerID:  bannerId,
-			TagIDS:    tagIds,
-			FeatureID: featureId,
-			Content:   content,
-			IsActive:  isActive,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-		})
+		countLine++
+
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
 
-func (p PgxDB) GetBanners(featureId uint64, tagId uint64, limit int, offset int) ([]models.Banner, error) {
-	sub := psql.Select("b.banner_id, feature_id, content, is_active, created_at, updated_at, btl.tag_id").
+func (p PgxDB) GetBanners(featureID uint64, tagID uint64, limit int, offset int) ([]models.Banner, error) {
+	sub := p.psql.Select("b.banner_id, feature_id, content, is_active, created_at, updated_at, btl.tag_id").
 		From("banner b").LeftJoin("banner_tag_link btl ON b.banner_id = btl.banner_id").Where(squirrel.Eq{
-		"b.feature_id": featureId,
+		"b.feature_id": featureID,
 	})
 
-	subquery := psql.Select("tab.banner_id, feature_id, content, is_active, created_at, updated_at, array_agg(tag_id) tag_ids").
-		FromSelect(sub, "tab").GroupBy("feature_id, content, is_active, created_at, updated_at, tab.banner_id")
+	subquery := p.psql.Select("tab.banner_id, feature_id, content, is_active, created_at, updated_at, "+
+		"array_agg(tag_id) tag_ids").
+		FromSelect(sub, "tab").GroupBy("feature_id, content, is_active, created_at, updated_at, " +
+		"tab.banner_id")
 
-	sqlQuery, _, err := psql.Select("*").FromSelect(subquery, "ban").Where("$2 = ANY (tag_ids)").ToSql()
+	sqlQuery, _, err := p.psql.Select("*").FromSelect(subquery, "ban").Where("$2 = ANY (tag_ids)").
+		ToSql()
 
 	if err != nil {
 		log.Errorf("Unable to build SELECT query: %v", err)
 		return nil, err
 	}
 
-	rows, err := p.Query(context.Background(), sqlQuery, featureId, tagId)
+	rows, err := p.Query(context.Background(), sqlQuery, featureID, tagID)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
 
 	var (
-		bannerId             uint64
+		bannerID             uint64
 		createdAt, updatedAt time.Time
 		content              pgtype.JSONB
 		isActive             bool
-		tagIds               []uint64
+		tagIDs               []uint64
 		result               []models.Banner
 	)
 
-	_, _ = pgxV5.ForEachRow(rows, []any{&bannerId, &featureId, &content, &isActive, &createdAt, &updatedAt, &tagIds}, func() error {
-		result = append(result, models.Banner{
-			BannerID:  bannerId,
-			TagIDS:    tagIds,
-			FeatureID: featureId,
-			Content:   content,
-			IsActive:  isActive,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-		})
+	countLine := 0
+	lenArray := 0
+	_, _ = pgxV5.ForEachRow(rows, []any{&bannerID, &featureID, &content, &isActive,
+		&createdAt, &updatedAt, &tagIDs,
+	}, func() error {
+		if countLine >= offset {
+			if limit != -1 {
+				if lenArray < limit {
+					lenArray++
+
+					result = append(result, models.Banner{
+						BannerID:  bannerID,
+						TagIDs:    tagIDs,
+						FeatureID: featureID,
+						Content:   content,
+						IsActive:  isActive,
+						CreatedAt: createdAt,
+						UpdatedAt: updatedAt,
+					})
+				}
+			} else {
+				lenArray++
+
+				result = append(result, models.Banner{
+					BannerID:  bannerID,
+					TagIDs:    tagIDs,
+					FeatureID: featureID,
+					Content:   content,
+					IsActive:  isActive,
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				})
+			}
+		}
+
+		countLine++
 
 		return nil
 	})
@@ -212,7 +262,7 @@ func (p PgxDB) GetBanners(featureId uint64, tagId uint64, limit int, offset int)
 }
 
 func (p PgxDB) DeleteBanner(id uint64) error {
-	sqlQuery, args, err := psql.Delete("banner").Where(squirrel.Eq{
+	sqlQuery, args, err := p.psql.Delete("banner").Where(squirrel.Eq{
 		"banner_id": id}).ToSql()
 
 	if err != nil {
@@ -228,23 +278,33 @@ func (p PgxDB) DeleteBanner(id uint64) error {
 	return err
 }
 
-func (p PgxDB) PostBanner(banner models.RequestBanner) (uint64, error) {
-	sqlQuery, args, err := psql.Insert("banner").Columns("feature_id", "content", "is_active",
-		"created_at", "updated_at").Values(banner.FeatureID, banner.Content, banner.IsActive, time.Now().UTC(), time.Now().UTC()).Suffix("RETURNING \"banner_id\"").ToSql()
+func (p PgxDB) PostBanner(banner models.Banner) (uint64, error) {
+	sqlQuery, args, err := p.psql.Insert("banner").Columns("feature_id", "content", "is_active",
+		"created_at", "updated_at").Values(
+		banner.FeatureID,
+		banner.Content,
+		banner.IsActive,
+		time.Now().UTC(),
+		time.Now().UTC(),
+	).Suffix("RETURNING \"banner_id\"").ToSql()
 
 	if err != nil {
 		log.Errorf("Unable to build INSERT query: %v", err)
 		return 0, err
 	}
 
-	var bannerId uint64
+	var bannerID uint64
 
-	err = p.QueryRow(context.Background(), sqlQuery, args...).Scan(&bannerId)
+	err = p.QueryRow(context.Background(), sqlQuery, args...).Scan(&bannerID)
 
-	builder := psql.Insert("banner_tag_link").Columns("banner_id", "tag_id")
+	if err != nil {
+		log.Errorf("failed to execute query: %v", err)
+	}
 
-	for i := range banner.TagIDS {
-		builder = builder.Values(bannerId, banner.TagIDS[i])
+	builder := p.psql.Insert("banner_tag_link").Columns("banner_id", "tag_id")
+
+	for i := range banner.TagIDs {
+		builder = builder.Values(bannerID, banner.TagIDs[i])
 	}
 
 	sqlQuery, args, err = builder.ToSql()
@@ -255,11 +315,11 @@ func (p PgxDB) PostBanner(banner models.RequestBanner) (uint64, error) {
 
 	_ = p.QueryRow(context.Background(), sqlQuery, args...)
 
-	return bannerId, err
+	return bannerID, err
 }
 
-func (p PgxDB) PatchBanner(banner models.RequestBanner, id int) error {
-	sqlQuery, args, err := psql.Update("banner").Set("feature_id", banner.FeatureID).Set("is_active", banner.IsActive).
+func (p PgxDB) PatchBanner(banner models.Banner, id int) error {
+	sqlQuery, args, err := p.psql.Update("banner").Set("feature_id", banner.FeatureID).Set("is_active", banner.IsActive).
 		Set("content", banner.Content).Set("updated_at", time.Now().UTC()).Where(squirrel.Eq{"banner_id": id}).ToSql()
 
 	if err != nil {
@@ -273,16 +333,21 @@ func (p PgxDB) PatchBanner(banner models.RequestBanner, id int) error {
 		return err
 	}
 
-	sqlQuery, args, err = psql.Delete("banner_tag_link").Where(squirrel.Eq{"banner_id": id}).ToSql()
+	sqlQuery, args, err = p.psql.Delete("banner_tag_link").Where(squirrel.Eq{"banner_id": id}).ToSql()
 	if err != nil {
 		log.Errorf("Unable to build DELETE query: %v", err)
+		return err
 	}
 	_, err = p.Exec(context.Background(), sqlQuery, args...)
 
-	builder := psql.Insert("banner_tag_link").Columns("banner_id", "tag_id")
+	if err != nil {
+		return err
+	}
 
-	for i := range banner.TagIDS {
-		builder = builder.Values(id, banner.TagIDS[i])
+	builder := p.psql.Insert("banner_tag_link").Columns("banner_id", "tag_id")
+
+	for i := range banner.TagIDs {
+		builder = builder.Values(id, banner.TagIDs[i])
 	}
 
 	sqlQuery, args, err = builder.ToSql()

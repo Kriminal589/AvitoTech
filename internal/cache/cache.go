@@ -2,9 +2,10 @@ package cache
 
 import (
 	"crypto/sha256"
-	"github.com/go-pkgz/expirable-cache/v3"
 	"strconv"
 	"time"
+
+	cache "github.com/go-pkgz/expirable-cache/v3"
 )
 
 const (
@@ -12,31 +13,31 @@ const (
 	ttl           = time.Minute * 5
 )
 
-type cacheDB struct {
+type BannerCache struct {
 	db    BannerGetter
 	cache cache.Cache[[32]byte, []byte]
 }
 
-func New(db BannerGetter) *cacheDB {
+func New(db BannerGetter) *BannerCache {
 	bannerCache := cache.NewCache[[32]byte, []byte]().WithMaxKeys(cacheCapacity).WithTTL(ttl)
 
-	return &cacheDB{
+	return &BannerCache{
 		db:    db,
 		cache: bannerCache,
 	}
 }
 
-func (c cacheDB) GetUserBanner(tagId uint64, featureId uint64, lastRevision bool, isAdmin bool) ([]byte, error) {
+func (c BannerCache) GetUserBanner(tagID uint64, featureID uint64, lastRevision bool, isAdmin bool) ([]byte, error) {
 	if lastRevision {
-		return c.db.GetUserBanner(tagId, featureId, isAdmin)
+		return c.db.GetUserBanner(tagID, featureID, isAdmin)
 	}
 
-	key := keyCash(tagId, featureId, isAdmin)
+	key := keyCash(tagID, featureID, isAdmin)
 	if cachedBanner, ok := c.cache.Get(key); ok {
 		return cachedBanner, nil
 	}
 
-	res, err := c.db.GetUserBanner(tagId, featureId, isAdmin)
+	res, err := c.db.GetUserBanner(tagID, featureID, isAdmin)
 
 	if err != nil {
 		return nil, err
@@ -47,9 +48,9 @@ func (c cacheDB) GetUserBanner(tagId uint64, featureId uint64, lastRevision bool
 	return res, nil
 }
 
-func keyCash(tagId uint64, featureId uint64, isAdmin bool) [32]byte {
-	tag := strconv.FormatUint(tagId, 10)
-	feature := strconv.FormatUint(featureId, 10)
+func keyCash(tagID uint64, featureID uint64, isAdmin bool) [32]byte {
+	tag := strconv.FormatUint(tagID, 10)
+	feature := strconv.FormatUint(featureID, 10)
 	admin := strconv.FormatBool(isAdmin)
 	key := []byte(tag + feature + admin)
 

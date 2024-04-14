@@ -8,14 +8,14 @@ import (
 
 type PgxDB struct {
 	*pgxpool.Pool
-	Logger pgx.Logger
+	logger pgx.Logger
+	psql   squirrel.StatementBuilderType
 }
 
 func NewPgxDB(pool *pgxpool.Pool, logger pgx.Logger) *PgxDB {
 	return &PgxDB{
 		Pool:   pool,
-		Logger: logger,
+		logger: logger,
+		psql:   squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
 	}
 }
-
-var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)

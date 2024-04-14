@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  database:
+    image: postgres:alpine
+    env_file: .env
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: banner_server
+    env_file: .env
+    volumes:
+      - ./logs:/go/src/banner/logs
+    depends_on:
+      - database
+    ports:
+      - "8080:8080"
+    links:
+      - database
+
+volumes:
+  db:

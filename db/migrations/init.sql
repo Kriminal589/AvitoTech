@@ -1,5 +1,3 @@
--- +goose Up
--- +goose StatementBegin
 ALTER TABLESPACE pg_global
     OWNER TO postgres;
 ALTER TABLESPACE pg_default
@@ -25,8 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 ) TABLESPACE pg_default;
 
 CREATE TABLE IF NOT EXISTS banner (
-    id BIGSERIAL PRIMARY KEY,
-    banner_id BIGINT,
+    banner_id BIGSERIAL PRIMARY KEY,
     feature_id BIGINT REFERENCES feature(id),
     content jsonb,
     is_active bool,
@@ -40,13 +37,7 @@ CREATE TABLE IF NOT EXISTS roles (
     user_id BIGINT,
     admin BOOLEAN
 ) TABLESPACE pg_default;
--- +goose StatementEnd
 
--- +goose Down
--- +goose StatementBegin
-DROP TABLE IF EXISTS tag;
-DROP TABLE IF EXISTS feature;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS banner;
-DROP TABLE IF EXISTS banner_tag_link;
--- +goose StatementEnd
+INSERT INTO feature VALUES (3);
+INSERT INTO users VALUES (1, 1), (2, 2);
+INSERT INTO roles VALUES (1, 1, true), (2, 2, false);

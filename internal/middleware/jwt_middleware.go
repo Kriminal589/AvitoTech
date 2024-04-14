@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"errors"
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v2"
-	"os"
 )
 
 func JWTProtected() func(c *fiber.Ctx) error {

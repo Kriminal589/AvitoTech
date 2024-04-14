@@ -1,5 +1,5 @@
 package cache
 
 type BannerGetter interface {
-	GetUserBanner(tagId uint64, featureId uint64, isAdmin bool) ([]byte, error)
+	GetUserBanner(tagID uint64, featureID uint64, isAdmin bool) ([]byte, error)
 }

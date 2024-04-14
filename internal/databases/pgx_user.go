@@ -11,7 +11,7 @@ import (
 )
 
 func (p PgxDB) GetUserRole(id uint64) (bool, error) {
-	sqlQuery, args, err := psql.Select("admin").From("roles").Where(squirrel.Eq{"user_id": id}).ToSql()
+	sqlQuery, args, err := p.psql.Select("admin").From("roles").Where(squirrel.Eq{"user_id": id}).ToSql()
 
 	if err != nil {
 		log.Errorf("Error while building SQL query: %v", err)
