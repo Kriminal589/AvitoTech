@@ -14,7 +14,7 @@ services:
   server_test:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: test.Dockerfile
     image: banner_server_test
     env_file: integration_tests/get_user_banner/.env
     volumes:
