@@ -31,7 +31,7 @@ func (p PgxDB) GetUserBanner(tagID uint64, featureID uint64, isAdmin bool) ([]by
 	err = p.QueryRow(context.Background(), sqlQuery, isAdmin, tagID, featureID).Scan(&data)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("db: reserve: no such banner with tag_id %d and feature_id %d", tagID, featureID)
+		return nil, fmt.Errorf("db: reserve: no such banner with tag_id %d and feature_id %d, %w", tagID, featureID, err)
 	} else if err != nil {
 		return nil, err
 	}
@@ -58,6 +58,13 @@ func (p PgxDB) GetBannersByFeatureID(id uint64, limit int, offset int) ([]models
 	}
 
 	rows, err := p.Query(context.Background(), sqlQuery, args...)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("db: reserve: no such banner with feature_id %d, %w", id, err)
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	var (
 		bannerID             uint64
@@ -106,6 +113,10 @@ func (p PgxDB) GetBannersByFeatureID(id uint64, limit int, offset int) ([]models
 		return nil
 	})
 
+	if len(result) == 0 {
+		return nil, pgx.ErrNoRows
+	}
+
 	return result, err
 }
 
@@ -125,6 +136,9 @@ func (p PgxDB) GetBannersByTagID(id uint64, limit int, offset int) ([]models.Ban
 
 	rows, err := p.Query(context.Background(), sqlQuery, id)
 
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("db: reserve: no such banner with tag_id %d, %w", id, err)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +219,7 @@ func (p PgxDB) GetBanners(featureID uint64, tagID uint64, limit int, offset int)
 
 	rows, err := p.Query(context.Background(), sqlQuery, featureID, tagID)
 
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+	if err != nil {
 		return nil, err
 	}
 

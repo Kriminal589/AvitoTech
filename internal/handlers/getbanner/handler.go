@@ -39,24 +39,24 @@ func (h *Handler) GetBanners(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
-	if tagID == -1 && featureID != -1 {
+	switch {
+	case tagID == -1 && featureID != -1:
 		data, err = h.DB.GetBannersByFeatureID(uint64(featureID), limit, offset)
-	}
-	if tagID != -1 && featureID == -1 {
+	case tagID != -1 && featureID == -1:
 		data, err = h.DB.GetBannersByTagID(uint64(tagID), limit, offset)
-	}
-	if tagID != -1 && featureID != -1 {
+	case tagID != -1 && featureID != -1:
 		data, err = h.DB.GetBanners(uint64(featureID), uint64(tagID), limit, offset)
-	}
-	if tagID == -1 && featureID == -1 {
-		return c.JSON(fiber.Map{
+	case tagID == -1 && featureID == -1:
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Missing tag or feature",
 		})
 	}
 
 	if err != nil {
-		log.Error(err)
-		if errors.Is(err, pgx.ErrNoRows) {
+		log.Info(err)
+
+		//nolint:govet // it's okay to use it here
+		if errors.As(err, &pgx.ErrNoRows) {
 			return c.SendStatus(fiber.StatusNotFound)
 		}
 		return c.SendStatus(fiber.StatusInternalServerError)
