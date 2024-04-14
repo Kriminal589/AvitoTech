@@ -24,6 +24,7 @@ type argsType struct {
 	featureID int64
 }
 
+// TODO: докинуть тест кейсы
 func TestHandler_GetBanners(t *testing.T) {
 	createdAt, _ := time.Parse("2006-01-02 15:04:05", "2020-09-30 10:00:00")
 	updatedAt, _ := time.Parse("2006-01-02 15:04:05", "2020-09-30 14:00:00")

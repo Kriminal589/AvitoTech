@@ -11,6 +11,7 @@ import (
 
 const timeExp = time.Hour * 24
 
+// TODO: подумать над тем, стоит хранить роль в токене
 func GenerateToken(id uint64) string {
 	if err := godotenv.Load(); err != nil {
 		log.Error("No .env file found")

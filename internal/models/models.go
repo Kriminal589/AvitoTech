@@ -6,23 +6,7 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-type Tag struct {
-	ID uint64 `json:"id"`
-}
-
-type Feature struct {
-	ID uint64 `json:"id"`
-}
-
-type User struct {
-	ID        uint64  `json:"id"`
-	Admin     bool    `json:"admin"`
-	FeatureID uint64  `json:"-"`
-	Feature   Feature `json:"Feature"`
-	TagID     uint64  `json:"-"`
-	Tag       Tag     `json:"Tag"`
-}
-
+// TODO: заменить JSONB на []byte
 type Banner struct {
 	IsActive  bool         `params:"is_active" json:"is_active"`
 	BannerID  uint64       `params:"banner_id" json:"banner_id"`

@@ -32,6 +32,7 @@ func NewHandler(db DBInt, cache BannerGetter, checker UserChecker) *Handler {
 	}
 }
 
+// TODO: вынести в отдельную директорию, написать тест
 func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 	tagID := c.QueryInt("tag_id")
 	featureID := c.QueryInt("feature_id")
@@ -55,6 +56,7 @@ func (h *Handler) GetUserBanner(c *fiber.Ctx) error {
 	return c.Type("json").Send(data)
 }
 
+// TODO: вынести в отдельную директорию, написать тест
 func (h *Handler) PostBanner(c *fiber.Ctx) error {
 	admin, err := h.userChecker.IsAdmin(c)
 
@@ -87,6 +89,7 @@ func (h *Handler) PostBanner(c *fiber.Ctx) error {
 		"banner_id": result})
 }
 
+// TODO: вынести в отдельную директорию, написать тест
 func (h *Handler) PatchBanner(c *fiber.Ctx) error {
 	admin, err := h.userChecker.IsAdmin(c)
 
@@ -129,6 +132,7 @@ func (h *Handler) PatchBanner(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
+// TODO: вынести в отдельную директорию, написать тест
 func (h *Handler) DeleteBanner(c *fiber.Ctx) error {
 	admin, err := h.userChecker.IsAdmin(c)
 
